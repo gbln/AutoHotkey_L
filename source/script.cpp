@@ -8001,6 +8001,7 @@ ResultType Line::ExpressionToPostfix(ArgStruct &aArg)
 	LPTSTR op_end, cp;
 	DerefType *deref, *this_deref, *deref_new;
 	int cp1; // int vs. char benchmarks slightly faster, and is slightly smaller in code size.
+	int cp2;
 	TCHAR number_buf[MAX_NUMBER_SIZE];
 
 	for (cp = aArg.text, deref = aArg.deref // Start at the beginning of this arg's text and look for the next deref.
@@ -8047,6 +8048,7 @@ ResultType Line::ExpressionToPostfix(ArgStruct &aArg)
 
 				// CHECK IF THIS CHARACTER IS AN OPERATOR.
 				cp1 = cp[1]; // Improves performance by nearly 5% and appreciably reduces code size (at the expense of being less maintainable).
+				cp1 = cp[2];
 				switch (*cp)
 				{
 				// The most common cases are kept up top to enhance performance if switch() is implemented as if-else ladder.
@@ -8174,7 +8176,7 @@ ResultType Line::ExpressionToPostfix(ArgStruct &aArg)
 					}
 					else if (cp1 == '/')
 					{
-						if (cp[2] == '=')
+						if (cp2 == '=')
 						{
 							cp += 2; // An additional increment to have loop skip over the operator's 2nd & 3rd symbols.
 							this_infix_item.symbol = SYM_ASSIGN_FLOORDIVIDE;
@@ -8291,11 +8293,17 @@ ResultType Line::ExpressionToPostfix(ArgStruct &aArg)
 				case '=':
 					if (cp1 == '=')
 					{
-						++cp; // An additional increment to have loop skip over the other '=' too.
-						this_infix_item.symbol = SYM_EQUALCASE;
+						if (cp2 == '=')
+						{
+							cp += 2; // An double increment to have loop skip over the other '='s too.
+							this_infix_item.symbol = SYM_EQUALCASE;
+						}
+						else
+						{
+							++cp; // An additional increment to have loop skip over the other '=' too.
+							this_infix_item.symbol = SYM_EQUAL;
+						}
 					}
-					else
-						this_infix_item.symbol = SYM_EQUAL;
 					break;
 				case '>':
 					switch (cp1)
@@ -8305,7 +8313,7 @@ ResultType Line::ExpressionToPostfix(ArgStruct &aArg)
 						this_infix_item.symbol = SYM_GTOE;
 						break;
 					case '>':
-						if (cp[2] == '=')
+						if (cp2 == '=')
 						{
 							cp += 2; // An additional increment to have loop skip over the operator's 2nd & 3rd symbols.
 							this_infix_item.symbol = SYM_ASSIGN_BITSHIFTRIGHT;
@@ -8328,7 +8336,7 @@ ResultType Line::ExpressionToPostfix(ArgStruct &aArg)
 						this_infix_item.symbol = SYM_LTOE;
 						break;
 					case '<':
-						if (cp[2] == '=')
+						if (cp2 == '=')
 						{
 							cp += 2; // An additional increment to have loop skip over the operator's 2nd & 3rd symbols.
 							this_infix_item.symbol = SYM_ASSIGN_BITSHIFTLEFT;
