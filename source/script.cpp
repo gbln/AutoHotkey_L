@@ -8048,7 +8048,7 @@ ResultType Line::ExpressionToPostfix(ArgStruct &aArg)
 
 				// CHECK IF THIS CHARACTER IS AN OPERATOR.
 				cp1 = cp[1]; // Improves performance by nearly 5% and appreciably reduces code size (at the expense of being less maintainable).
-				cp1 = cp[2];
+				cp2 = cp[2];
 				switch (*cp)
 				{
 				// The most common cases are kept up top to enhance performance if switch() is implemented as if-else ladder.
