@@ -6448,7 +6448,7 @@ Func *Script::FindFuncInLibrary(LPTSTR aFuncName, size_t aFuncNameLength, bool &
 	#define FUNC_LIB_EXT_LENGTH (_countof(FUNC_LIB_EXT) - 1)
 	#define FUNC_LOCAL_LIB _T("\\Lib\\") // Needs leading and trailing backslash.
 	#define FUNC_LOCAL_LIB_LENGTH (_countof(FUNC_LOCAL_LIB) - 1)
-	#define FUNC_USER_LIB _T("\\AutoHotkey\\Lib\\") // Needs leading and trailing backslash.
+	#define FUNC_USER_LIB _T("\\AutoHotkey\\Libx\\") // Needs leading and trailing backslash.
 	#define FUNC_USER_LIB_LENGTH (_countof(FUNC_USER_LIB) - 1)
 	#define FUNC_STD_LIB _T("Lib\\") // Needs trailing but not leading backslash.
 	#define FUNC_STD_LIB_LENGTH (_countof(FUNC_STD_LIB) - 1)
