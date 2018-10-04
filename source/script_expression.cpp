@@ -698,7 +698,6 @@ LPTSTR Line::ExpandExpression(int aArgIndex, ResultType &aResult, ResultToken *a
 			}
 			continue;
 
-		case SYM_LOWNOT:  // The operator-word "not".
 		case SYM_HIGHNOT: // The symbol '!'. Both NOTs are equivalent at this stage because precedence was already acted upon by infix-to-postfix.
 			this_token.SetValue(!TokenToBOOL(right)); // Result is always one or zero.
 			break;
