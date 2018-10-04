@@ -118,7 +118,7 @@ static BOOL IniEncodingFix(LPWSTR aFilespec, LPWSTR aSection)
 }
 #endif
 
-ResultType Line::IniWrite(LPTSTR aValue, LPTSTR aFilespec, LPTSTR aSection, LPTSTR aKey)
+ResultType Line::IniWrite(LPTSTR aFilespec, LPTSTR aSection, LPTSTR aKey, LPTSTR aValue)
 {
 	TCHAR	szFileTemp[_MAX_PATH+1];
 	TCHAR	*szFilePart;
@@ -132,18 +132,18 @@ ResultType Line::IniWrite(LPTSTR aValue, LPTSTR aFilespec, LPTSTR aSection, LPTS
 	result = IniEncodingFix(szFileTemp, aSection);
 	if(result){
 #endif
-		if (*aKey)
+		if (*aKey && *aValue)
 		{
 			result = WritePrivateProfileString(aSection, aKey, aValue, szFileTemp);  // Returns zero on failure.
 		}
-		else
+		else if (*aKey)
 		{
-			size_t value_len = ArgLength(1);
+			size_t value_len = ArgLength(3);
 			TCHAR c, *cp, *szBuffer = talloca(value_len + 2); // +2 for double null-terminator.
 			// Convert newline-delimited list to null-terminated array of null-terminated strings.
-			for (cp = szBuffer; *aValue; ++cp, ++aValue)
+			for (cp = szBuffer; *aKey; ++cp, ++aKey)
 			{
-				c = *aValue;
+				c = *aKey;
 				*cp = (c == '\n') ? '\0' : c;
 			}
 			*cp = '\0', cp[1] = '\0'; // Double null-terminator.
