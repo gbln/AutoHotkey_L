@@ -178,7 +178,7 @@ void Script::PreparseHotkeyIfExpr(Line *aLine)
 	Func &fn = *postfix[param_count].deref->func;
 	if (!fn.mIsBuiltIn || fn.mBIF != &BIF_WinExistActive)
 		return; // Not WinExist() or WinActive().
-	bool invert = postfix[param_count+1].symbol == SYM_LOWNOT || postfix[param_count+1].symbol == SYM_HIGHNOT;
+	bool invert = postfix[param_count + 1].symbol == SYM_HIGHNOT;
 	if (postfix[param_count+1+invert].symbol != SYM_INVALID)
 		return; // There's more to the expression.
 	// Otherwise, it was a single call to WinExist() or WinActive() where each parameter

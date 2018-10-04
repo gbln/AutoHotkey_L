@@ -2880,8 +2880,6 @@ ResultType Script::GetLineContinuation(TextStream *fp, LPTSTR buf, size_t &buf_l
 				is_continuation_line = false; // Set default.
 				switch(ctoupper(*next_buf)) // Above has ensured *next_buf != '\0' (toupper might have problems with '\0').
 				{
-				case 'A': // AND
-				case 'O': // OR
 				case 'I': // IS, IN
 				case 'C': // CONTAINS (future use)
 					// See comments in the default section further below.
@@ -5618,9 +5616,6 @@ SymbolType Script::ConvertWordOperator(LPCTSTR aWord, size_t aLength)
 	};
 	static WordOp sWordOp[] =
 	{
-		{ _T("or"), SYM_OR },
-		{ _T("and"), SYM_AND },
-		{ _T("not"), SYM_LOWNOT },
 		{ _T("new"), SYM_NEW },
 		{ _T("is"), SYM_IS },
 		{ _T("in"), SYM_IN },
@@ -7972,7 +7967,7 @@ ResultType Line::ExpressionToPostfix(ArgStruct &aArg)
 		, 58, 58         // SYM_ADD, SYM_SUBTRACT
 		, 62, 62, 62     // SYM_MULTIPLY, SYM_DIVIDE, SYM_FLOORDIVIDE
 		, 72             // SYM_POWER (see note below).  Associativity kept as left-to-right for backward compatibility (e.g. 2**2**3 is 4**3=64 not 2**8=256).
-		, 25             // SYM_LOWNOT (the word "NOT": the low precedence version of logical-not).  HAS AN ODD NUMBER to indicate right-to-left evaluation order so that things like "not not var" are supports (which can be used to convert a variable into a pure 1/0 boolean value).
+
 		, 67,67,67,67,67 // SYM_NEGATIVE (unary minus), SYM_POSITIVE (unary plus), SYM_HIGHNOT (the high precedence "!" operator), SYM_BITNOT, SYM_ADDRESS
 		// NOTE: THE ABOVE MUST BE AN ODD NUMBER to indicate right-to-left evaluation order, which was added in v1.0.46 to support consecutive unary operators such as !*var !!var (!!var can be used to convert a value into a pure 1/0 boolean).
 //		, 68             // THIS VALUE MUST BE LEFT UNUSED so that the one above can be promoted to it by the infix-to-postfix routine.

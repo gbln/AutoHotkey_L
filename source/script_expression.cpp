@@ -644,7 +644,7 @@ LPTSTR Line::ExpandExpression(int aArgIndex, ResultType &aResult, ResultToken *a
 		case SYM_ADDRESS:
 		case SYM_AND:			// v2: These don't need it either since even numeric strings are considered "true".
 		case SYM_OR:			//
-		case SYM_LOWNOT:		//
+
 		case SYM_HIGHNOT:		//
 			break;
 			
