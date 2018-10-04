@@ -632,8 +632,8 @@ ResultType Script::Init(global_struct &g, LPTSTR aScriptFilename, bool aIsRestar
 	// It also provides more consistency.
 	GetModuleFileName(NULL, buf, _countof(buf));
 #else
-	TCHAR def_buf[MAX_PATH + 1], exe_buf[MAX_PATH + 20]; // For simplicity, allow at least space for +2 (see below) and "AutoHotkey.chm".
-	if (!aScriptFilename) // v1.0.46.08: Change in policy: store the default script in the My Documents directory rather than in Program Files.  It's more correct and solves issues that occur due to Vista's file-protection scheme.
+	TCHAR def_buf[MAX_PATH + 5], exe_buf[MAX_PATH + 20]; // For simplicity, allow at least space for +2 (see below) and "AutoHotkey.chm".
+	if (!aScriptFilename) // Check for EXENAME.ahk or EXEDIR\app\EXENAME.ahk
 	{
 		// Since no script-file was specified on the command line, use the default name.
 		// For portability, first check if there's an <EXENAME>.ahk file in the current directory.
@@ -643,8 +643,8 @@ ResultType Script::Init(global_struct &g, LPTSTR aScriptFilename, bool aIsRestar
 		// MAX_PATH+1 could mean it was truncated.  Any path longer than MAX_PATH would be rare.
 		if (exe_len > MAX_PATH)
 			return FAIL; // Seems the safest option for this unlikely case.
-		if (  (suffix = _tcsrchr(exe_buf, '\\')) // Find name part of path.
-			&& (dot = _tcsrchr(suffix, '.'))  ) // Find extension part of name.
+		// Find name part of path @ suffix and then find name part of path @ dot.
+		if (  (suffix = _tcsrchr(exe_buf, '\\')) && (dot = _tcsrchr(suffix, '.'))  )
 			// Even if the extension is somehow zero characters, more than enough space was
 			// reserved in exe_buf to add "ahk":
 			//&& dot - exe_buf + 5 < _countof(exe_buf)  ) // Enough space in buffer?
@@ -657,23 +657,13 @@ ResultType Script::Init(global_struct &g, LPTSTR aScriptFilename, bool aIsRestar
 		aScriptFilename = exe_buf; // Use the entire path, including the exe's directory.
 		if (GetFileAttributes(aScriptFilename) == 0xFFFFFFFF) // File doesn't exist, so fall back to new method.
 		{
-			aScriptFilename = def_buf;
-			VarSizeType filespec_length = BIV_MyDocuments(aScriptFilename, _T("")); // e.g. C:\Documents and Settings\Home\My Documents
-			if (filespec_length + _tcslen(suffix) + 1 > _countof(def_buf))
-				return FAIL; // Very rare, so for simplicity just abort.
-			_tcscpy(aScriptFilename + filespec_length, suffix); // Append the filename: .ahk vs. .ini seems slightly better in terms of clarity and usefulness (e.g. the ability to double click the default script to launch it).
-			if (GetFileAttributes(aScriptFilename) == 0xFFFFFFFF)
-			{
-				_tcscpy(suffix, _T("\\") AHK_HELP_FILE); // Replace the executable name.
-				if (GetFileAttributes(exe_buf) != 0xFFFFFFFF) // Avoids hh.exe showing an error message if the file doesn't exist.
-				{
-					_sntprintf(buf, _countof(buf), _T("\"ms-its:%s::/docs/Welcome.htm\""), exe_buf);
-					if (ActionExec(_T("hh.exe"), buf, exe_buf, false, _T("Max")))
-						return FAIL;
-				}
-				// Since above didn't return, the help file is missing or failed to launch,
-				// so continue on and let the missing script file be reported as an error.
-			}
+			// Reuse the buffer that was created above.
+			_tcscat(_tcscpy(def_buf, L"\\app"), suffix); // Copy \app to def_buf then concatenate suffix to it.
+			// suffix is pointing to exe_buf's "\nameofscript.ahk" part.
+			_tcscpy(suffix, def_buf); // So glue suffix, pointer of exe_buf with \app\nameofscript.ahk
+			if (_tcslen(aScriptFilename) > MAX_PATH)
+				return FAIL;
+			// If it doesn't exist, then it will be detected as missing script below.
 		}
 		//else since the file exists, everything is now set up right. (The file might be a directory, but that isn't checked due to rarity.)
 	}
