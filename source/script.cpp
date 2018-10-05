@@ -5806,7 +5806,10 @@ ResultType Script::DefineFunc(LPTSTR aBuf, Var *aFuncGlobalVar[], bool aIsFatArr
 
 		// To enhance syntax error catching, consider ByRef to be a keyword; i.e. that can never be the name
 		// of a formal parameter:
-		if (this_param.is_byref = !tcslicmp(param_start, _T("ByRef"), param_end - param_start)) // ByRef.
+		if (this_param.is_byref = (*param_start == '&'))
+			++param_start; // Doesn't need much checking, only allowed when prepended to param without spaces. &param
+			// Otherwise, it's just reported as missing parameter name below. f(&) or f(& param)
+		else if (this_param.is_byref = !tcslicmp(param_start, _T("ByRef"), param_end - param_start)) // ByRef.
 		{
 			// Omit the ByRef keyword from further consideration:
 			param_start = omit_leading_whitespace(param_end);
