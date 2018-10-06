@@ -4438,8 +4438,8 @@ ResultType Script::ParseAndAddLine(LPTSTR aLineText, int aBufSize, ActionTypeTyp
 					cp = omit_leading_whitespace(id_end);
 					if (*cp) // Avoid checking cp[1] and cp[2] when !*cp.
 					if (*cp == '[' // x.y[z]
-						|| *cp == '='
-						|| cp[1] == '=' && _tcschr(_T(":+-*/|&^."), cp[0]) // Two-char assignment operator.
+						|| *cp == '=' // One char assignment operator. "x.y = z"
+						|| cp[1] == '=' && _tcschr(_T(":+-*/|&^."), cp[0]) // Two-char assignment operator. "x.y := z", "x.y .= z"
 						|| cp[1] == cp[0]
 							&& (   _tcschr(_T("/<>"), cp[0]) && cp[2] == '=' // //=, <<= or >>=
 								|| *cp == '+' || *cp == '-'   )) // x.y++ or x.y--
