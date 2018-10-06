@@ -412,7 +412,7 @@ LPTSTR Line::ExpandExpression(int aArgIndex, ResultType &aResult, ResultToken *a
 			// It's fairly rare that the following optimization is even applicable because it requires
 			// an assignment *internal* to an expression, such as "if not var:=func()", or "a:=b, c:=func()".
 			// But it seems best to optimize these cases so that commas aren't penalized.
-			else if (this_postfix[1].symbol == SYM_ASSIGN  // Next operation is ":=".
+			else if (this_postfix[1].symbol == SYM_ASSIGN  // Next operation is ":=" or "=".
 					&& stack_count && stack[stack_count-1]->symbol == SYM_VAR // i.e. let the next iteration handle errors instead of doing it here.  Further below relies on this having been checked.
 					&& stack[stack_count-1]->var->Type() == VAR_NORMAL) // Don't do clipboard here because: 1) AcceptNewMem() doesn't support it; 2) Could probably use Assign() and then make its result be a newly added mem_count item, but the code complexity doesn't seem worth it given the rarity.
 				internal_output_var = stack[stack_count-1]->var;
@@ -463,7 +463,7 @@ LPTSTR Line::ExpandExpression(int aArgIndex, ResultType &aResult, ResultToken *a
 				}
 				if (done)
 					goto normal_end_skip_output_var; // No need to restore circuit_token because the expression is finished.
-				// Next operation is ":=" and above has verified the target is SYM_VAR and VAR_NORMAL.
+				// Next operation is ":=" or "=" and above has verified the target is SYM_VAR and VAR_NORMAL.
 				--stack_count; // STACK_POP;
 				this_token.var = internal_output_var; // Make the result a variable rather than a normal operand so that its
 				this_token.symbol = SYM_VAR; // address can be taken, and it can be passed ByRef. e.g. &(x:=1)
@@ -966,7 +966,7 @@ LPTSTR Line::ExpandExpression(int aArgIndex, ResultType &aResult, ResultToken *a
 						temp_var = output_var;
 						done_and_have_an_output_var = TRUE;
 					}
-					else if (this_postfix[1].symbol == SYM_ASSIGN // Next operation is ":=".
+					else if (this_postfix[1].symbol == SYM_ASSIGN // Next operation is ":=" or "=".
 						&& stack_count && stack[stack_count-1]->symbol == SYM_VAR // i.e. let the next iteration handle it instead of doing it here.  Further below relies on this having been checked.
 						&& stack[stack_count-1]->var->Type() == VAR_NORMAL) // Don't do clipboard here because: 1) AcceptNewMem() doesn't support it; 2) Could probably use Assign() and then make its result be a newly added mem_count item, but the code complexity doesn't seem worth it given the rarity.
 					{
