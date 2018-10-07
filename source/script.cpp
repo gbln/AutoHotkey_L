@@ -2472,7 +2472,7 @@ examine_line:
 			if (cp > buf) // i.e. buf begins with an identifier.
 			{
 				cp = omit_leading_whitespace(cp);
-				if (*cp == ':' && cp[1] == '=') // This is an assignment.
+				if (*cp == '=' || (*cp == ':' && cp[1] == '=')) // This is an assignment.
 				{
 					if (!DefineClassVars(buf, false)) // See above for comments.
 						return FAIL;
@@ -4221,6 +4221,9 @@ ResultType Script::ParseAndAddLine(LPTSTR aLineText, int aBufSize, ActionTypeTyp
 				case '\0': // No initializer is present for this variable, so move on to the next one.
 					item = item_end; // Set "item" for use by the next iteration.
 					continue;
+				case '=':
+					++item_end; // Point to the character after "=".
+					break;
 				case ':':
 					if (item_end[1] == '=')
 					{
@@ -4325,8 +4328,7 @@ ResultType Script::ParseAndAddLine(LPTSTR aLineText, int aBufSize, ActionTypeTyp
 	{
 		action_args = omit_leading_whitespace(end_marker);
 		TCHAR end_char = *end_marker;
-		could_be_named_action = (!end_char || IS_SPACE_OR_TAB(end_char) || end_char == '(')
-			&& *action_args != '='; // Allow for a more specific error message for `x = y`, to ease transition from v1.
+		could_be_named_action = (!end_char || IS_SPACE_OR_TAB(end_char) || end_char == '(');
 	}
 	else
 	{
@@ -4363,11 +4365,18 @@ ResultType Script::ParseAndAddLine(LPTSTR aLineText, int aBufSize, ActionTypeTyp
 
 		switch(*action_args)
 		{
+		case '=':
+			aActionType = ACT_ASSIGNEXPR;
+			break;
 		case ':':
 			// v1.0.40: Allow things like "MsgBox :: test" to be valid by insisting that '=' follows ':'.
 			// v2.0: The example above is invalid, but it's still best to verify this is really ':='.
 			if (action_args_2nd_char == '=') // i.e. :=
+			{
+				*action_args = ' ';
+				++action_args;
 				aActionType = ACT_ASSIGNEXPR;
+			}
 			break;
 		case '+':
 		case '-':
@@ -4430,7 +4439,8 @@ ResultType Script::ParseAndAddLine(LPTSTR aLineText, int aBufSize, ActionTypeTyp
 					cp = omit_leading_whitespace(id_end);
 					if (*cp) // Avoid checking cp[1] and cp[2] when !*cp.
 					if (*cp == '[' // x.y[z]
-						|| cp[1] == '=' && _tcschr(_T(":+-*/|&^."), cp[0]) // Two-char assignment operator.
+						|| *cp == '=' // One char assignment operator. "x.y = z"
+						|| cp[1] == '=' && _tcschr(_T(":+-*/|&^."), cp[0]) // Two-char assignment operator. "x.y := z", "x.y .= z"
 						|| cp[1] == cp[0]
 							&& (   _tcschr(_T("/<>"), cp[0]) && cp[2] == '=' // //=, <<= or >>=
 								|| *cp == '+' || *cp == '-'   )) // x.y++ or x.y--
@@ -4469,7 +4479,7 @@ ResultType Script::ParseAndAddLine(LPTSTR aLineText, int aBufSize, ActionTypeTyp
 				// ALSO: ACT_ASSIGNEXPR is made into ACT_EXPRESSION *only* when multi-statement
 				// commas are present because it performs much better for trivial assignments,
 				// even some which aren't optimized to become non-expressions.
-				LPTSTR cp = action_args + FindExprDelim(action_args, g_delimiter, 2);
+				LPTSTR cp = action_args + FindExprDelim(action_args, g_delimiter, 1);
 				if (*cp) // Found a delimiting comma other than one in a sub-statement or function. Shouldn't need to worry about unquoted escaped commas since they don't make sense with += and -=.
 				{
 					// Any non-function comma qualifies this as multi-statement.
@@ -4478,9 +4488,8 @@ ResultType Script::ParseAndAddLine(LPTSTR aLineText, int aBufSize, ActionTypeTyp
 				else
 				{
 					// The following converts:
-					// x := 2 -> ACT_ASSIGNEXPR, x, 2
-					*action_args = g_delimiter; // Replace the ":" with a delimiter for later parsing.
-					action_args[1] = ' '; // Remove the "=" from consideration.
+					// x = 2 -> ACT_ASSIGNEXPR, x, 2
+					*action_args = g_delimiter; // Replace the "=" with a delimiter for later parsing.
 				}
 			}
 			//else it's already an isolated expression, so no changes are desired.
@@ -4583,9 +4592,6 @@ ResultType Script::ParseAndAddLine(LPTSTR aLineText, int aBufSize, ActionTypeTyp
 				aActionType = ACT_EXPRESSION; // Mark this line as a stand-alone expression.
 				action_args = aLineText; // Since this is a function-call followed by a comma and some other expression, use the line's full text for later parsing.
 			}
-			else if (*action_args == '=')
-				// v2: Give a more specific error message since the user probably meant to do an old-style assignment.
-				return ScriptError(_T("Syntax error. Did you mean to use \":=\"?"), aLineText);
 			else if (*action_args == g_delimiter)
 				return ScriptError(_T("Function calls require a space or \"(\".  Use comma only between parameters."), aLineText);
 			else
@@ -5856,18 +5862,19 @@ ResultType Script::DefineFunc(LPTSTR aBuf, Var *aFuncGlobalVar[], bool aIsFatArr
 			break;
 		}
 
-		if (*param_start == '=') // This will probably be a common error for users transitioning from v1.
-			return ScriptError(ERR_BAD_OPTIONAL_PARAM, param_start);
+		if (*param_start == ':')
+		{
+			if (param_start[1] != '=')
+				return ScriptError(ERR_BAD_OPTIONAL_PARAM, param_start);
+			++param_start;
+		}
 
 		// v1.0.35: Check if a default value is specified for this parameter and set up for the next iteration.
 		// The following section is similar to that used to support initializers for static variables.
 		// So maybe maintain them together.
-		if (*param_start == ':') // This is the default value of the param just added.
+		if (*param_start == '=') // This is the default value of the param just added.
 		{
-			if (param_start[1] != '=')
-				return ScriptError(ERR_BAD_OPTIONAL_PARAM, param_start);
-
-			param_start = omit_leading_whitespace(param_start + 2); // Start of the default value.
+			param_start = omit_leading_whitespace(param_start + 1); // Start of the default value.
 			if (*param_start == '"' || *param_start == '\'') // Quoted literal string, or the empty string.
 			{
 				TCHAR in_quote = *param_start;
@@ -6255,6 +6262,9 @@ ResultType Script::DefineClassVars(LPTSTR aBuf, bool aStatic)
 		case '\0': // No initializer is present for this variable, so move on to the next one.
 			item = item_end; // Set "item" for use by the loop's condition.
 			continue;
+		case '=':
+			++item_end; // Point to the character after "=".
+			break;
 		case ':':
 			if (item_end[1] == '=')
 			{
@@ -6274,7 +6284,7 @@ ResultType Script::DefineClassVars(LPTSTR aBuf, bool aStatic)
 		item_end += FindExprDelim(item_end); // Find the next comma which is not part of the initializer (or find end of string).
 
 		// Append "ClassNameOrThis.VarName := Initializer, " to the buffer.
-		LPCTSTR initializer = item_name_has_dot ? _T("%s.%.*s := %.*s, ") : _T("ObjRawSet(%s,\"%.*s\",(%.*s)), ");
+		LPCTSTR initializer = item_name_has_dot ? _T("%s.%.*s = %.*s, ") : _T("ObjRawSet(%s,\"%.*s\",(%.*s)), ");
 		int chars_written = _sntprintf(buf + buf_used, _countof(buf) - buf_used, initializer
 			, aStatic ? mClassName : _T("this"), (int)name_length, item, (int)(item_end - right_side_of_operator), right_side_of_operator);
 		if (chars_written < 0)
@@ -8315,6 +8325,8 @@ ResultType Line::ExpressionToPostfix(ArgStruct &aArg)
 							this_infix_item.symbol = SYM_EQUAL;
 						}
 					}
+					else
+						this_infix_item.symbol = SYM_ASSIGN;
 					break;
 				case '>':
 					switch (cp1)
@@ -12639,7 +12651,7 @@ LPTSTR Line::ToText(LPTSTR aBuf, int aBufSize, bool aCRLF, DWORD aElapsed, bool 
 		aBuf += sntprintf(aBuf, BUF_SPACE_REMAINING, _T("%s%s%s%s")
 			, mActionType == ACT_IF ? _T("if ") : _T("")
 			, mArg[0].text
-			, mActionType == ACT_ASSIGNEXPR ? _T(" := ") : _T(""), RAW_ARG2);
+			, mActionType == ACT_ASSIGNEXPR ? _T(" = ") : _T(""), RAW_ARG2);
 	else if (mActionType == ACT_FOR)
 		aBuf += sntprintf(aBuf, BUF_SPACE_REMAINING, _T("For %s%s%s in %s")
 			, mArg[0].text, *mArg[1].text ? _T(",") : _T(""), mArg[1].text, mArg[2].text);

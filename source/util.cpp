@@ -2802,7 +2802,7 @@ int FindExprDelim(LPCTSTR aBuf, TCHAR aDelimiter, int aStartIndex, LPCTSTR aLite
 	TCHAR close_char;
 	for (int mark = aStartIndex; ; ++mark)
 	{
-		if (aBuf[mark] == aDelimiter && (aDelimiter != ':' || aBuf[mark+1] != '='))
+		if (aBuf[mark] == aDelimiter && aDelimiter != '=' && (aDelimiter != ':' || aBuf[mark+1] != '='))
 			return mark;
 		switch (aBuf[mark])
 		{
@@ -2826,6 +2826,10 @@ int FindExprDelim(LPCTSTR aBuf, TCHAR aDelimiter, int aStartIndex, LPCTSTR aLite
 		case g_delimiter:
 			if (aDelimiter && aDelimiter != ':') // Caller wants to find a specific symbol and it's not this one.
 				continue; // Unbalanced parentheses etc are caught at a later stage.
+			return mark;
+		case '=':
+			if (aDelimiter)
+				continue;
 			return mark;
 		case ':':
 			if (aDelimiter // See above.
