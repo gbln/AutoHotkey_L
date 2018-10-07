@@ -9804,15 +9804,19 @@ VarSizeType BIV_AhkVersion(LPTSTR aBuf, LPTSTR aVarName)
 	return (VarSizeType)_tcslen(T_AHK_VERSION);
 }
 
-VarSizeType BIV_AhkPath(LPTSTR aBuf, LPTSTR aVarName) // v1.0.41.
+VarSizeType BIV_AhkDir_AhkPath(LPTSTR aBuf, LPTSTR aVarName) // v1.0.41.
 {
 #ifdef AUTOHOTKEYSC
 	if (aBuf)
 	{
 		size_t length;
 		if (length = GetAHKInstallDir(aBuf))
-			// Name "AutoHotkey.exe" is assumed for code size reduction and because it's not stored in the registry:
-			tcslcpy(aBuf + length, _T("\\AutoHotkey.exe"), MAX_PATH - length); // strlcpy() in case registry has a path that is too close to MAX_PATH to fit AutoHotkey.exe
+		{
+			if (aVarName[8]) // A_AhkPat[h]
+				// Name "AutoHotkey.exe" is assumed for code size reduction and because it's not stored in the registry:
+				tcslcpy(aBuf + length, _T("\\AutoHotkey.exe"), MAX_PATH - length); // strlcpy() in case registry has a path that is too close to MAX_PATH to fit AutoHotkey.exe
+			//else "A_AhkDir" -> GetAHKInstallDir already did the job.
+		}
 		//else leave it blank as documented.
 		return (VarSizeType)_tcslen(aBuf);
 	}
@@ -9824,7 +9828,17 @@ VarSizeType BIV_AhkPath(LPTSTR aBuf, LPTSTR aVarName) // v1.0.41.
 	TCHAR buf[MAX_PATH];
 	VarSizeType length = (VarSizeType)GetModuleFileName(NULL, buf, MAX_PATH);
 	if (aBuf)
-		_tcscpy(aBuf, buf); // v1.0.47: Must be done as a separate copy because passing a size of MAX_PATH for aBuf can crash when aBuf is actually smaller than that (even though it's large enough to hold the string). This is true for ReadRegString()'s API call and may be true for other API calls like this one.
+	{
+		if (aVarName[8]) // A_AhkPat[h]
+			_tcscpy(aBuf, buf); // v1.0.47: Must be done as a separate copy because passing a size of MAX_PATH for aBuf can crash when aBuf is actually smaller than that (even though it's large enough to hold the string). This is true for ReadRegString()'s API call and may be true for other API calls like this one.
+		else // A_AhkDir
+		{
+			// From AutoHotkey_H - HotkeyIt
+			length = (_tcsrchr(buf, L'\\') - buf);
+			_tcsncpy(aBuf, buf, length); // v1.0.47: Must be done as a separate copy because passing a size of MAX_PATH for aBuf can crash when aBuf is actually smaller than that (even though it's large enough to hold the string). This is true for ReadRegString()'s API call and may be true for other API calls like this one.
+			*(aBuf + length) = L'\0';
+		}
+	}
 	return length;
 #endif
 }

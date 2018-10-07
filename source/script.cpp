@@ -315,7 +315,8 @@ VarEntry g_BIV[] =
 // name to reduce code size and speed up the comparisons.
 VarEntry g_BIV_A[] =
 {
-	A_(AhkPath),
+	A_x(AhkDir, BIV_AhkDir_AhkPath),
+	A_x(AhkPath, BIV_AhkDir_AhkPath),
 	A_(AhkVersion),
 	A_w(AllowMainWindow),
 	A_x(AppData, BIV_SpecialFolderPath),
