@@ -8324,7 +8324,7 @@ ResultType Line::ExpressionToPostfix(ArgStruct &aArg)
 					{
 						if (cp2 == '=')
 						{
-							cp += 2; // An double increment to have loop skip over the other '='s too.
+							cp += 2; // A double increment to have loop skip over the other '='s too.
 							this_infix_item.symbol = SYM_EQUALCASE;
 						}
 						else
