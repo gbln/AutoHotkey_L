@@ -8229,11 +8229,19 @@ ResultType Line::ExpressionToPostfix(ArgStruct &aArg)
 					}
 					break;
 				case '!':
-					if (cp1 == '=') // i.e. !=
-						// An additional increment for each '=' to have loop skip over the '=' too.
-						++cp, this_infix_item.symbol	= cp[1] == '=' // note, cp[1] is not equal to cp1 here due to ++cp
-														? (++cp, SYM_NOTEQUALCASE)	// !==
-														: SYM_NOTEQUAL;				// != 
+					if (cp1 == '=') // i.e. != or !==
+					{
+						if (cp2 == '=') // !==
+						{
+							cp += 2; // A double increment to have loop skip over the other '='s too.
+							this_infix_item.symbol = SYM_NOTEQUALCASE;
+						}
+						else // !=
+						{
+							++cp; // An additional increment to have loop skip over the other '=' too.
+							this_infix_item.symbol = SYM_NOTEQUAL;
+						}
+					}
 					else
 						// If what lies to its left is a CPARAN or OPERAND, SYM_CONCAT is not auto-inserted because:
 						// 1) Allows ! and ~ to potentially be overloaded to become binary and unary operators in the future.
